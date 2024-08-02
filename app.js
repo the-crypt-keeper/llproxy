@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
 
 // Load configuration
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
@@ -116,6 +117,66 @@ app.post('/v1/completions', (req, res) => {
 // Chat completions endpoint
 app.post('/v1/chat/completions', (req, res) => {
   proxyCompletionRequest(req, res, 'chat/completions');
+});
+
+// Generate HTML table for status page
+function generateStatusTable() {
+  let tableHtml = `
+    <table border="1">
+      <tr>
+        <th>Name</th>
+        <th>Host</th>
+        <th>Port</th>
+        <th>ID</th>
+      </tr>
+  `;
+
+  activeModels.forEach(model => {
+    tableHtml += `
+      <tr>
+        <td>${model.name}</td>
+        <td>${model.host}</td>
+        <td>${model.port}</td>
+        <td>${model.id}</td>
+      </tr>
+    `;
+  });
+
+  tableHtml += '</table>';
+  return tableHtml;
+}
+
+// Status endpoint
+app.get('/status', (req, res) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>LLProxy Status</title>
+      <meta http-equiv="refresh" content="30">
+      <style>
+        table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        th, td {
+          border: 1px solid black;
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>LLProxy Status</h1>
+      <p>Last updated: ${new Date().toLocaleString()}</p>
+      ${generateStatusTable()}
+    </body>
+    </html>
+  `;
+  res.send(html);
 });
 
 // Start the server
