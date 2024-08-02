@@ -12,14 +12,14 @@ LLProxy is a flexible proxy server for Large Language Models (LLMs) that allows 
 
 ## Prerequisites
 
-- Node.js (v14 or later recommended)
+- Node.js (v20)
 - npm (comes with Node.js)
 
 ## Installation
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/llproxy.git
+   git clone https://github.com/the-crypt-keeper/llproxy.git
    cd llproxy
    ```
 
@@ -69,10 +69,12 @@ Edit the `config.json` file to set up your LLM endpoints:
 
 2. The server will start on the configured port (default: 3333)
 
-3. Access the API endpoints:
+3. Access the API endpoints (returns JSON):
    - GET `/v1/models`: List all available models
    - POST `/v1/completions`: Get completions for a prompt
    - POST `/v1/chat/completions`: Get chat completions
+
+4. Access monitoring endpoints (returns HTML):
    - GET `/status`: View the status page for active models
 
 ## API Examples
@@ -110,10 +112,6 @@ Content-Type: application/json
   ]
 }
 ```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
