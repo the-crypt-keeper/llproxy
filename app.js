@@ -11,13 +11,21 @@ const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 
 // Data structures
 let activeModels = [];
+let isDiscoveryInProgress = false;
 
 // Model discovery function
 async function discoverModels() {
+  if (isDiscoveryInProgress) {
+    console.log('Model discovery already in progress. Skipping.');
+    return;
+  }
+
+  isDiscoveryInProgress = true;
   console.log('Starting model discovery...');
   const newActiveModels = [];
 
-  for (const endpoint of config.endpoints) {
+  try {
+    for (const endpoint of config.endpoints) {
     for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
       try {
         const response = await axios.get(`http://${endpoint.hostname}:${port}/v1/models`);
@@ -46,10 +54,17 @@ async function discoverModels() {
 
   activeModels = newActiveModels;
   console.log(`Model discovery complete. Found ${activeModels.length} models.`);
+  } catch (error) {
+    console.error('Error during model discovery:', error);
+  } finally {
+    isDiscoveryInProgress = false;
+  }
 }
 
 // Run model discovery every 30 seconds
-cron.schedule('*/30 * * * * *', discoverModels);
+cron.schedule('*/30 * * * * *', () => {
+  discoverModels().catch(error => console.error('Scheduled model discovery failed:', error));
+});
 
 // Models endpoint
 app.get('/v1/models', (req, res) => {
