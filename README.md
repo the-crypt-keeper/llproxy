@@ -113,6 +113,11 @@ Content-Type: application/json
 }
 ```
 
+## TODO
+
+- Support endpoints with API keys
+- Better support importing models from managed OpenAI providers
+
 ## License
 
 This project is licensed under the MIT License.
