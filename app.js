@@ -24,9 +24,9 @@ async function discoverModels() {
         const models = response.data.data;
 
         for (const model of models) {
-          const name = model.id.split('/').pop().split('.')[0];
+          const name = model.id.split('/').pop().replace(/\.[^/.]+$/, '');
           const tags = endpoint.tags || [];
-          const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [`${name}`];
+          const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
           finalNames.forEach(finalName => {
             newActiveModels.push({
