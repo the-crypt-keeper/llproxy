@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LLProxy Status</title>
+  <meta http-equiv="refresh" content="30">
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>LLProxy Status</h1>
+  <p>Last updated: <%= lastUpdated %></p>
+  <table border="1">
+    <tr>
+      <th>Name</th>
+      <th>Host</th>
+      <th>Port</th>
+      <th>ID</th>
+    </tr>
+    <% activeModels.forEach(function(model) { %>
+      <tr>
+        <td><%= model.name %></td>
+        <td><%= model.host %></td>
+        <td><%= model.port %></td>
+        <td><%= model.id %></td>
+      </tr>
+    <% }); %>
+  </table>
+</body>
+</html>
