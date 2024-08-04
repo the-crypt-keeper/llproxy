@@ -153,15 +153,22 @@ async function proxyCompletionRequest(req, res, endpoint) {
   };
 
   try {
+    const headers = {};
+    if (model.apikey) {
+      headers['Authorization'] = `Bearer ${model.apikey}`;
+    }
+
     const response = await axios({
       method: 'post',
       url: `${model.url}/v1/${endpoint}`,
       data: proxyReq,
+      headers: headers,
       responseType: 'stream'
     });
 
     response.data.pipe(res);
   } catch (error) {
+    console.error('Error proxying request:', error.message);
     res.status(500).json({ error: 'Error proxying request' });
   }
 }
