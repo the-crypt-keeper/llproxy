@@ -4,6 +4,9 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const app = express();
 app.use(cors());
@@ -23,54 +26,30 @@ let isDiscoveryInProgress = false;
 
 // SSH Model discovery function
 async function discoverSSH(hostname, ssh_username, env_var) {
-  const { NodeSSH } = require('node-ssh');  
-  const ssh = new NodeSSH();
   const os = require('os');
+  const keyPath = process.env.SSH_PRIVATE_KEY_PATH || path.join(os.homedir(), '.ssh', 'id_rsa');
 
-  username = ssh_username
-  keyPath = process.env.SSH_PRIVATE_KEY_PATH || '/home/'+os.userInfo().username+'/.ssh/id_rsa'
-  privateKey = fs.readFileSync(keyPath, 'utf-8');
+  const sshCommand = `ssh -i ${keyPath} ${ssh_username}@${hostname} 'bash -c "
+    ps ux | tail -n +2 | awk \'{print $2}\' | while read pid; do
+      value=$(tr \\"\\\\0\\" \\"\\\\n\\" 2>/dev/null < /proc/$pid/environ | grep \\"^${env_var}=\\")
+      if [[ ! -z \\"$value\\" ]]; then
+        value_content=$(echo \\"$value\\" | cut -d= -f2-)
+        echo \\"$pid,$value_content\\"
+      fi
+    done
+  "'`;
 
   try {
-    await ssh.connect({
-      host: hostname,
-      username: username,
-      privateKey: privateKey
-    });
+    const { stdout, stderr } = await execPromise(sshCommand);
+    if (stderr) {
+      console.error('SSH command error:', stderr);
+    }
+    console.log('SSH command output:', stdout);
+    return stdout.trim().split('\n').filter(line => line.length > 0);
   } catch (error) {
-    console.log(`SSH connection to ${hostname} failed.`);
-    return []
+    console.log(`SSH discovery on ${hostname} failed:`, error.message);
+    return [];
   }
-
-  cmdLine = `bash -c '
-ps ux | tail -n +2 | awk "{print \$2}" | while read pid; do
-    value=$(tr "\0" "\n" 2>/dev/null < /proc/$pid/environ | grep "^PORT=")
-    if [[ ! -z "$value" ]]; then
-        value_content=$(echo "$value" | cut -d= -f2-)
-        echo "$pid,$value_content"
-    fi
-done
-'`
-
-cmdLine2 = `bash -c '
-ps ux | tail -n +2 | awk "{print \$2}" | while read pid; do
-    value=\`tr "\0" "\n" 2>/dev/null </proc/$pid/environ\`
-done
-'`
-
-  let result;
-  try {
-    result = await ssh.execCommand(cmdLine2);
-  } catch (error) {
-    console.log(`SSH discovery on ${hostname} failed.`);
-    console.error(error);
-    return []
-  }
-
-  if (result.stderr) { console.error('Task error:', result.stderr); }
-  console.log(result.stdout);
-  ssh.dispose();
-  return(result.stdout);
 }
 
 async function discoverHTTP(hostname, port, tags = []) {
