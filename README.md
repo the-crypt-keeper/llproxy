@@ -1,22 +1,22 @@
 # LLProxy
 
-LLProxy is a flexible proxy server for Large Language Models (LLMs) that allows you to discover and interact with multiple LLM endpoints through a unified interface.
+LLProxy is a flexible, auto-discovering proxy server for Large Language Models (LLMs).
 
 ## Features
 
-- Automatic discovery of LLM endpoints
-- Unified API for multiple LLM models
-- Support for both completions and chat completions
+- Automatic discovery of LLM models and endpoints
+  - HTTP port scan (finds local API endpoints)
+  - SSH scan (finds processes with a PORT env var set)
+  - HTTPS managed endpoint scan (supports API keys)
+- Unified completions and chat completions API for multiple LLM models
+  - Clients dont need to worry about keys or where the model is hosted
 - Periodic model discovery updates
 - Status page for active models
-- SSH-based model discovery
-- Support for API keys
-- Model filtering
+- Model filtering (only import some models into the proxy)
 
 ## Prerequisites
 
 - Node.js (v20)
-- npm (comes with Node.js)
 
 ## Installation
 
@@ -71,7 +71,7 @@ Edit the `config.json` file to set up your LLM endpoints:
   1. SSH-based discovery:
      - `hostname`: The hostname for SSH connection
      - `ssh_username`: The SSH username for authentication
-     - `env_var`: The environment variable to search for in SSH-based discovery
+     - `env_var`: The environment variable to search for a port number in SSH-based discovery
      - `tags`: Optional tags to append to model names
 
   2. HTTP scan discovery:
@@ -144,7 +144,7 @@ Content-Type: application/json
 
 ## TODO
 
-- Better support importing models from managed OpenAI providers
+This project is functionally complete, no further features are planned.
 
 ## License
 
