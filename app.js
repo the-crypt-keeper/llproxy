@@ -21,7 +21,55 @@ const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 let activeModels = [];
 let isDiscoveryInProgress = false;
 
-// Model discovery function
+// SSH Model discovery function
+async function runSSHCommand(hostname, cmdLine) {
+  const ssh = new NodeSSH();
+  const os = require('os');
+
+  username = process.env.SSH_USERNAME || os.userInfo().username
+  keyPath = process.env.SSH_PRIVATE_KEY_PATH || '/home/'+os.userInfo().username+'/.ssh/id_rsa'
+  privateKey = fs.readFileSync(keyPath, 'utf-8');
+
+  await ssh.connect({
+    host: hostname,
+    username: username,
+    privateKey: privateKey
+  });
+
+  const result = await ssh.execCommand(cmdLine);
+  if (result.stderr) { console.error('Task error:', result.stderr); }
+  console.log(result.stdout);
+  ssh.dispose();
+  return(result.stdout);
+}
+
+async function discoverHTTP(hostname, port, tags = []) {
+  let newActiveModels = [];
+  try {
+    const response = await axios.get(`http://${hostname}:${port}/v1/models`);
+    const models = response.data.data;
+
+    for (const model of models) {
+      const name = model.id.split('/').pop().replace(/\.[^/.]+$/, '');
+      const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
+
+      finalNames.forEach(finalName => {
+        newActiveModels.push({
+          name: finalName,
+          host: hostname,
+          port: port,
+          id: model.id,
+          ...model
+        });
+      });
+    }
+  } catch (error) {
+    console.log(`No model found at ${hostname}:${port}`);
+  }
+  return newActiveModels;
+}
+
+// HTTP Model discovery function
 async function discoverModels() {
   if (isDiscoveryInProgress) {
     console.log('Model discovery already in progress. Skipping.');
@@ -30,33 +78,12 @@ async function discoverModels() {
 
   isDiscoveryInProgress = true;
   console.log('Starting model discovery...');
-  const newActiveModels = [];
+  let newActiveModels = [];
 
   try {
     for (const endpoint of config.endpoints) {
     for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
-      try {
-        const response = await axios.get(`http://${endpoint.hostname}:${port}/v1/models`);
-        const models = response.data.data;
-
-        for (const model of models) {
-          const name = model.id.split('/').pop().replace(/\.[^/.]+$/, '');
-          const tags = endpoint.tags || [];
-          const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
-
-          finalNames.forEach(finalName => {
-            newActiveModels.push({
-              name: finalName,
-              host: endpoint.hostname,
-              port: port,
-              id: model.id,
-              ...model
-            });
-          });
-        }
-      } catch (error) {
-        console.log(`No model found at ${endpoint.hostname}:${port}`);
-      }
+      newActiveModels += await discoverHTTP(endpoint, port);
     }
   }
 
@@ -87,6 +114,8 @@ app.get('/v1/models', (req, res) => {
     }))
   });
 });
+
+
 
 // Proxy function for completions endpoints
 async function proxyCompletionRequest(req, res, endpoint) {
