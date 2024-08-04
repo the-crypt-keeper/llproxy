@@ -42,7 +42,7 @@ async function discoverSSH(hostname, ssh_username, env_var) {
     for (result of stdout.trim().split('\n').filter(line => line.length > 0)) {
       console.log('SSH discovery found', result, 'on', hostname)
       const url = `http://${hostname}:${result.split(',')[1]}`;
-      models = await discoverHTTP(url, []);
+      models = await discoverHTTP(url, [], null, config.filter);
       if (models.length > 0) { results = results.concat(models); }
     }
 
@@ -54,7 +54,7 @@ async function discoverSSH(hostname, ssh_username, env_var) {
   }
 }
 
-async function discoverHTTP(url, tags = [], apikey = null) {
+async function discoverHTTP(url, tags = [], apikey = null, filter = []) {
   let newActiveModels = [];
   try {
     const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
@@ -66,13 +66,15 @@ async function discoverHTTP(url, tags = [], apikey = null) {
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
-        console.log('HTTP discovery found', name, 'at', url)
-        newActiveModels.push({
-          name: finalName,
-          url: url,
-          id: model.id,
-          ...model
-        });
+        if (filter.length === 0 || filter.some(f => finalName.includes(f))) {
+          console.log('HTTP discovery found', name, 'at', url)
+          newActiveModels.push({
+            name: finalName,
+            url: url,
+            id: model.id,
+            ...model
+          });
+        }
       });
     }
   } catch (error) {
@@ -95,11 +97,11 @@ async function discoverModels() {
   try {
     for (const endpoint of config.endpoints) {
       if (endpoint.url) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey));
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey, config.filter));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
           const url = `http://${endpoint.hostname}:${port}`;
-          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey));
+          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey, config.filter));
         }
       } else if (endpoint.env_var) {
         newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
