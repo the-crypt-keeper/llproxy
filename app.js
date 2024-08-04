@@ -1,6 +1,5 @@
 const express = require('express');
 const axios = require('axios');
-const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
@@ -115,9 +114,9 @@ async function discoverModels() {
 }
 
 // Run model discovery every 30 seconds
-cron.schedule('*/30 * * * * *', () => {
+setInterval(() => {
   discoverModels().catch(error => console.error('Scheduled model discovery failed:', error));
-});
+}, 30000);
 
 // Models endpoint
 app.get('/v1/models', (req, res) => {
@@ -186,4 +185,9 @@ app.get('/status', async (req, res) => {
 app.listen(config.port, () => {
   console.log(`LLProxy listening on port ${config.port}`);
   discoverModels(); // Initial model discovery
+  
+  // Start the interval for model discovery
+  setInterval(() => {
+    discoverModels().catch(error => console.error('Scheduled model discovery failed:', error));
+  }, 30000);
 });
