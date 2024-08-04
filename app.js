@@ -83,18 +83,18 @@ async function discoverModels() {
   try {
     for (const endpoint of config.endpoints) {
       if (endpoint.port) {
-        newActiveModels += await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags);
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
-          newActiveModels += await discoverHTTP(endpoint.hostname, port, endpoint.tags);
+          newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, port, endpoint.tags));
         }
       } else if (endpoint.env_var) {
-        newActiveModels += await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var);
+        newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
       }
-  }
+    }
 
-  activeModels = newActiveModels;
-  console.log(`Model discovery complete. Found ${activeModels.length} models.`);
+    activeModels = newActiveModels;
+    console.log(`Model discovery complete. Found ${activeModels.length} models.`);
   } catch (error) {
     console.error('Error during model discovery:', error);
   } finally {
@@ -162,7 +162,8 @@ app.post('/v1/chat/completions', (req, res) => {
 });
 
 // Status endpoint
-app.get('/status', (req, res) => {
+app.get('/status', async (req, res) => {
+  await discoverModels();
   res.render('status', {
     activeModels: activeModels,
     lastUpdated: new Date().toLocaleString()
