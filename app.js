@@ -72,6 +72,7 @@ async function discoverHTTP(url, tags = [], apikey = null, filter = []) {
             name: finalName,
             url: url,
             id: model.id,
+            apikey: apikey,  // Save the API key
             ...model
           });
         }
