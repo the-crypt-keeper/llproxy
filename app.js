@@ -53,10 +53,10 @@ async function discoverSSH(hostname, ssh_username, env_var) {
   }
 }
 
-async function discoverHTTP(hostname, port, tags = [], bearerToken = null) {
+async function discoverHTTP(hostname, port, tags = [], apikey = null) {
   let newActiveModels = [];
   try {
-    const headers = bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {};
+    const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
     const response = await axios.get(`http://${hostname}:${port}/v1/models`, { headers });
     const models = response.data.data;
 
@@ -95,10 +95,10 @@ async function discoverModels() {
   try {
     for (const endpoint of config.endpoints) {
       if (endpoint.port) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags, endpoint.bearerToken));
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags, endpoint.apikey));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
-          newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, port, endpoint.tags, endpoint.bearerToken));
+          newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, port, endpoint.tags, endpoint.apikey));
         }
       } else if (endpoint.env_var) {
         newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
