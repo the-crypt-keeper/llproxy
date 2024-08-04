@@ -66,15 +66,28 @@ Edit the `config.json` file to set up your LLM endpoints:
 
 - `port`: The port on which LLProxy will run
 - `interval`: The interval (in milliseconds) for periodic model discovery
-- `endpoints`: An array of LLM endpoints to discover
-  - `hostname`: The IP address or hostname of the endpoint
-  - `port_start` and `port_end`: The range of ports to scan for models (for HTTP discovery)
-  - `ssh_username`: The SSH username for SSH-based discovery
-  - `env_var`: The environment variable to search for in SSH-based discovery
-  - `url`: The URL for direct API endpoints
-  - `tags`: Optional tags to append to model names
-  - `filter`: An array of strings to filter model names
-  - `apikey`: The API key for authenticated endpoints
+- `endpoints`: An array of LLM endpoints to discover. There are three types of endpoint configurations:
+
+  1. SSH-based discovery:
+     - `hostname`: The hostname for SSH connection
+     - `ssh_username`: The SSH username for authentication
+     - `env_var`: The environment variable to search for in SSH-based discovery
+     - `tags`: Optional tags to append to model names
+
+  2. HTTP scan discovery:
+     - `hostname`: The IP address or hostname of the endpoint
+     - `port_start`: The starting port number for the scan range
+     - `port_end`: The ending port number for the scan range
+     - `tags`: Optional tags to append to model names
+
+  3. Managed provider import:
+     - `url`: The URL for the API endpoint of the managed provider
+     - `apikey`: The API key for authentication with the managed provider
+     - `filter`: An array of strings to filter model names
+     - `tags`: Optional tags to append to model names
+
+  Common options:
+  - `tags`: Optional tags to append to model names (applies to all types)
 
 ## Usage
 
