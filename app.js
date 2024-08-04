@@ -82,9 +82,15 @@ async function discoverModels() {
 
   try {
     for (const endpoint of config.endpoints) {
-    for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
-      newActiveModels += await discoverHTTP(endpoint, port);
-    }
+      if (endpoint.port) {
+        newActiveModels += await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags);
+      } else if (endpoint.port_start && endpoint.port_end) {
+        for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
+          newActiveModels += await discoverHTTP(endpoint.hostname, port, endpoint.tags);
+        }
+      } else if (endpoint.env_var) {
+        newActiveModels += await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var);
+      }
   }
 
   activeModels = newActiveModels;
