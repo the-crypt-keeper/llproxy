@@ -9,6 +9,9 @@ LLProxy is a flexible proxy server for Large Language Models (LLMs) that allows 
 - Support for both completions and chat completions
 - Periodic model discovery updates
 - Status page for active models
+- SSH-based model discovery
+- Support for API keys
+- Model filtering
 
 ## Prerequisites
 
@@ -37,7 +40,14 @@ Edit the `config.json` file to set up your LLM endpoints:
 ```json
 {
   "port": 3333,
+  "interval": 30000,
   "endpoints": [
+    {
+      "hostname": "supremacy",
+      "ssh_username": "mike",
+      "env_var": "PORT",
+      "tags": []
+    },
     {
       "hostname": "100.106.238.128",
       "port_start": 8080,
@@ -45,20 +55,26 @@ Edit the `config.json` file to set up your LLM endpoints:
       "tags": []
     },
     {
-      "hostname": "100.109.96.89",
-      "port_start": 8080,
-      "port_end": 8090,
-      "tags": []
+      "url": "https://api.groq.com/openai",
+      "tags": [],
+      "filter": ["llama3","gemma","mixtral"],
+      "apikey": "your_api_key_here"
     }
   ]
 }
 ```
 
 - `port`: The port on which LLProxy will run
+- `interval`: The interval (in milliseconds) for periodic model discovery
 - `endpoints`: An array of LLM endpoints to discover
   - `hostname`: The IP address or hostname of the endpoint
-  - `port_start` and `port_end`: The range of ports to scan for models
+  - `port_start` and `port_end`: The range of ports to scan for models (for HTTP discovery)
+  - `ssh_username`: The SSH username for SSH-based discovery
+  - `env_var`: The environment variable to search for in SSH-based discovery
+  - `url`: The URL for direct API endpoints
   - `tags`: Optional tags to append to model names
+  - `filter`: An array of strings to filter model names
+  - `apikey`: The API key for authenticated endpoints
 
 ## Usage
 
@@ -115,7 +131,6 @@ Content-Type: application/json
 
 ## TODO
 
-- Support endpoints with API keys
 - Better support importing models from managed OpenAI providers
 
 ## License
