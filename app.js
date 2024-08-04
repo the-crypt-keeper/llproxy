@@ -40,8 +40,9 @@ async function discoverSSH(hostname, ssh_username, env_var) {
     let results = [];
 
     for (result of stdout.trim().split('\n').filter(line => line.length > 0)) {
-      console.log('SSH discovery found',result,'on',hostname)
-      models = await discoverHTTP(hostname, result.split(',')[1], []);
+      console.log('SSH discovery found', result, 'on', hostname)
+      const url = `http://${hostname}:${result.split(',')[1]}`;
+      models = await discoverHTTP(url, []);
       if (models.length > 0) { results = results.concat(models); }
     }
 
@@ -53,11 +54,11 @@ async function discoverSSH(hostname, ssh_username, env_var) {
   }
 }
 
-async function discoverHTTP(hostname, port, tags = [], apikey = null) {
+async function discoverHTTP(url, tags = [], apikey = null) {
   let newActiveModels = [];
   try {
     const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
-    const response = await axios.get(`http://${hostname}:${port}/v1/models`, { headers });
+    const response = await axios.get(`${url}/v1/models`, { headers });
     const models = response.data.data;
 
     for (const model of models) {
@@ -65,18 +66,17 @@ async function discoverHTTP(hostname, port, tags = [], apikey = null) {
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
-        console.log('HTTP discovery found',name,'on',hostname+':'+port)
+        console.log('HTTP discovery found', name, 'at', url)
         newActiveModels.push({
           name: finalName,
-          host: hostname,
-          port: port,
+          url: url,
           id: model.id,
           ...model
         });
       });
     }
   } catch (error) {
-    console.log(`No model found at ${hostname}:${port}`);
+    console.log(`No model found at ${url}`);
   }
   return newActiveModels;
 }
@@ -94,11 +94,12 @@ async function discoverModels() {
 
   try {
     for (const endpoint of config.endpoints) {
-      if (endpoint.port) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, endpoint.port, endpoint.tags, endpoint.apikey));
+      if (endpoint.url) {
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
-          newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.hostname, port, endpoint.tags, endpoint.apikey));
+          const url = `http://${endpoint.hostname}:${port}`;
+          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey));
         }
       } else if (endpoint.env_var) {
         newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
@@ -152,7 +153,7 @@ async function proxyCompletionRequest(req, res, endpoint) {
   try {
     const response = await axios({
       method: 'post',
-      url: `http://${model.host}:${model.port}/v1/${endpoint}`,
+      url: `${model.url}/v1/${endpoint}`,
       data: proxyReq,
       responseType: 'stream'
     });
