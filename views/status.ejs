@@ -23,15 +23,13 @@
   <table border="1">
     <tr>
       <th>Name</th>
-      <th>Host</th>
-      <th>Port</th>
+      <th>URL</th>
       <th>ID</th>
     </tr>
     <% activeModels.forEach(function(model) { %>
       <tr>
         <td><%= model.name %></td>
-        <td><%= model.host %></td>
-        <td><%= model.port %></td>
+        <td><%= model.url %></td>
         <td><%= model.id %></td>
       </tr>
     <% }); %>
