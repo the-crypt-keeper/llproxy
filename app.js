@@ -185,9 +185,4 @@ app.get('/status', async (req, res) => {
 app.listen(config.port, () => {
   console.log(`LLProxy listening on port ${config.port}`);
   discoverModels(); // Initial model discovery
-  
-  // Start the interval for model discovery
-  setInterval(() => {
-    discoverModels().catch(error => console.error('Scheduled model discovery failed:', error));
-  }, 30000);
 });
