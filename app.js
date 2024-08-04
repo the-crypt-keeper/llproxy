@@ -22,21 +22,51 @@ let activeModels = [];
 let isDiscoveryInProgress = false;
 
 // SSH Model discovery function
-async function runSSHCommand(hostname, cmdLine) {
+async function discoverSSH(hostname, ssh_username, env_var) {
+  const { NodeSSH } = require('node-ssh');  
   const ssh = new NodeSSH();
   const os = require('os');
 
-  username = process.env.SSH_USERNAME || os.userInfo().username
+  username = ssh_username
   keyPath = process.env.SSH_PRIVATE_KEY_PATH || '/home/'+os.userInfo().username+'/.ssh/id_rsa'
   privateKey = fs.readFileSync(keyPath, 'utf-8');
 
-  await ssh.connect({
-    host: hostname,
-    username: username,
-    privateKey: privateKey
-  });
+  try {
+    await ssh.connect({
+      host: hostname,
+      username: username,
+      privateKey: privateKey
+    });
+  } catch (error) {
+    console.log(`SSH connection to ${hostname} failed.`);
+    return []
+  }
 
-  const result = await ssh.execCommand(cmdLine);
+  cmdLine = `bash -c '
+ps ux | tail -n +2 | awk "{print \$2}" | while read pid; do
+    value=$(tr "\0" "\n" 2>/dev/null < /proc/$pid/environ | grep "^PORT=")
+    if [[ ! -z "$value" ]]; then
+        value_content=$(echo "$value" | cut -d= -f2-)
+        echo "$pid,$value_content"
+    fi
+done
+'`
+
+cmdLine2 = `bash -c '
+ps ux | tail -n +2 | awk "{print \$2}" | while read pid; do
+    value=\`tr "\0" "\n" 2>/dev/null </proc/$pid/environ\`
+done
+'`
+
+  let result;
+  try {
+    result = await ssh.execCommand(cmdLine2);
+  } catch (error) {
+    console.log(`SSH discovery on ${hostname} failed.`);
+    console.error(error);
+    return []
+  }
+
   if (result.stderr) { console.error('Task error:', result.stderr); }
   console.log(result.stdout);
   ssh.dispose();
