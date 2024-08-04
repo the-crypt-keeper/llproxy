@@ -26,26 +26,28 @@ let isDiscoveryInProgress = false;
 
 // SSH Model discovery function
 async function discoverSSH(hostname, ssh_username, env_var) {
-  const os = require('os');
-  const keyPath = process.env.SSH_PRIVATE_KEY_PATH || path.join(os.homedir(), '.ssh', 'id_rsa');
 
-  const sshCommand = `ssh -i ${keyPath} ${ssh_username}@${hostname} 'bash -c "
-    ps ux | tail -n +2 | awk \'{print $2}\' | while read pid; do
-      value=$(tr \\"\\\\0\\" \\"\\\\n\\" 2>/dev/null < /proc/$pid/environ | grep \\"^${env_var}=\\")
-      if [[ ! -z \\"$value\\" ]]; then
-        value_content=$(echo \\"$value\\" | cut -d= -f2-)
-        echo \\"$pid,$value_content\\"
-      fi
-    done
-  "'`;
+  const sshCommand = `ssh ${ssh_username}@${hostname} '
+    ps ux | tail -n +2 | awk "{print \\$2}" | while read pid; do
+        value=$(grep -z "^PORT=" 2>/dev/null </proc/$pid/environ)
+        if [[ ! -z "$value" ]]; then
+            value_content=$(echo "$value" | cut -d= -f2-)
+            echo "$pid,$value_content"
+        fi
+    done'`;
 
   try {
     const { stdout, stderr } = await execPromise(sshCommand);
-    if (stderr) {
-      console.error('SSH command error:', stderr);
+    let results = [];
+
+    for (result of stdout.trim().split('\n').filter(line => line.length > 0)) {
+      console.log('SSH discovery found',result,'on',hostname)
+      models = await discoverHTTP(hostname, result.split(',')[1], []);
+      if (models.length > 0) { results = results.concat(models); }
     }
-    console.log('SSH command output:', stdout);
-    return stdout.trim().split('\n').filter(line => line.length > 0);
+
+    return results;
+      
   } catch (error) {
     console.log(`SSH discovery on ${hostname} failed:`, error.message);
     return [];
@@ -63,6 +65,7 @@ async function discoverHTTP(hostname, port, tags = []) {
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
+        console.log('HTTP discovery found',name,'on',hostname+':'+port)
         newActiveModels.push({
           name: finalName,
           host: hostname,
