@@ -42,7 +42,7 @@ async function discoverSSH(hostname, ssh_username, env_var) {
     for (result of stdout.trim().split('\n').filter(line => line.length > 0)) {
       console.log('SSH discovery found', result, 'on', hostname)
       const url = `http://${hostname}:${result.split(',')[1]}`;
-      models = await discoverHTTP(url, [], null, config.filter);
+      models = await discoverHTTP(url);
       if (models.length > 0) { results = results.concat(models); }
     }
 
@@ -66,7 +66,7 @@ async function discoverHTTP(url, tags = [], apikey = null, filter = []) {
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
-        if (filter.length === 0 || filter.some(f => finalName.includes(f))) {
+        if (filter === null || filter.length === 0 || filter.some(f => finalName.includes(f))) {
           console.log('HTTP discovery found', name, 'at', url)
           newActiveModels.push({
             name: finalName,
@@ -97,11 +97,11 @@ async function discoverModels() {
   try {
     for (const endpoint of config.endpoints) {
       if (endpoint.url) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey, config.filter));
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey, endpoint.filter));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
           const url = `http://${endpoint.hostname}:${port}`;
-          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey, config.filter));
+          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey, endpoint.filter));
         }
       } else if (endpoint.env_var) {
         newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
