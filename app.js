@@ -28,7 +28,7 @@ async function discoverSSH(hostname, ssh_username, env_var) {
 
   const sshCommand = `ssh ${ssh_username}@${hostname} '
     ps ux | tail -n +2 | awk "{print \\$2}" | while read pid; do
-        value=$(grep -z "^PORT=" 2>/dev/null </proc/$pid/environ)
+        value=$(grep -z "^${env_var}=" 2>/dev/null </proc/$pid/environ)
         if [[ ! -z "$value" ]]; then
             value_content=$(echo "$value" | cut -d= -f2-)
             echo "$pid,$value_content"
@@ -116,7 +116,7 @@ async function discoverModels() {
 // Run model discovery every 30 seconds
 setInterval(() => {
   discoverModels().catch(error => console.error('Scheduled model discovery failed:', error));
-}, 30000);
+}, config.interval);
 
 // Models endpoint
 app.get('/v1/models', (req, res) => {
