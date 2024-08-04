@@ -72,19 +72,16 @@ Edit the `config.json` file to set up your LLM endpoints:
      - `hostname`: The hostname for SSH connection
      - `ssh_username`: The SSH username for authentication
      - `env_var`: The environment variable to search for a port number in SSH-based discovery
-     - `tags`: Optional tags to append to model names
 
   2. HTTP scan discovery:
      - `hostname`: The IP address or hostname of the endpoint
      - `port_start`: The starting port number for the scan range
      - `port_end`: The ending port number for the scan range
-     - `tags`: Optional tags to append to model names
 
   3. Managed provider import:
      - `url`: The URL for the API endpoint of the managed provider
      - `apikey`: The API key for authentication with the managed provider
      - `filter`: An array of strings to filter model names
-     - `tags`: Optional tags to append to model names
 
   Common options:
   - `tags`: Optional tags to append to model names (applies to all types)
