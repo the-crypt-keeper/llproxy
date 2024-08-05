@@ -38,12 +38,17 @@ async function discoverSSH(hostname, ssh_username, env_var) {
   try {
     const { stdout, stderr } = await execPromise(sshCommand);
     let results = [];
+    let processedPorts = new Set();
 
     for (result of stdout.trim().split('\n').filter(line => line.length > 0)) {
-      console.log('SSH discovery found', result, 'on', hostname)
-      const url = `http://${hostname}:${result.split(',')[1]}`;
-      models = await discoverHTTP(url);
-      if (models.length > 0) { results = results.concat(models); }
+      const [pid, port] = result.split(',');
+      if (!processedPorts.has(port)) {
+        console.log('SSH discovery found', result, 'on', hostname)
+        const url = `http://${hostname}:${port}`;
+        models = await discoverHTTP(url);
+        if (models.length > 0) { results = results.concat(models); }
+        processedPorts.add(port);
+      }
     }
 
     return results;
