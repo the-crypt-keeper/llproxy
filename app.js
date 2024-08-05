@@ -62,7 +62,7 @@ async function discoverHTTP(url, tags = [], apikey = null, filter = []) {
     const models = response.data.data;
 
     for (const model of models) {
-      const name = model.id.split('/').pop().replace(/\.[^/.]+$/, '');
+      const name = model.id.split('/').pop().replace('.gguf', '');
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
