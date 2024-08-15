@@ -81,33 +81,57 @@ async function discoverSSH(endpoint) {
 }
 
 async function discoverHTTP(endpoint) {
-  const { url, tags = [], apikey = null, filter = [] } = endpoint;
+  const { url, tags = [], apikey = null, filter = [], models = [] } = endpoint;
   let newActiveModels = [];
-  try {
-    const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
-    const response = await axios.get(`${url}/v1/models`, { headers });
-    const models = response.data.data;
 
+  if (models.length > 0) {
+    // Use the provided models array directly
     for (const model of models) {
       const name = model.id.split('/').pop().replace('.gguf', '');
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
         if (filter === null || filter.length === 0 || filter.some(f => finalName.includes(f))) {
-          console.log('HTTP discovery found', name, 'at', url)
+          console.log('Using provided model', name, 'for', url);
           newActiveModels.push({
             name: finalName,
             url: url,
             id: model.id,
-            apikey: apikey,  // Save the API key
+            apikey: apikey,
             ...model
           });
         }
       });
     }
-  } catch (error) {
-    console.log(`No model found at ${url}`);
+  } else {
+    // Fetch models from the API if no models array is provided
+    try {
+      const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
+      const response = await axios.get(`${url}/v1/models`, { headers });
+      const fetchedModels = response.data.data;
+
+      for (const model of fetchedModels) {
+        const name = model.id.split('/').pop().replace('.gguf', '');
+        const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
+
+        finalNames.forEach(finalName => {
+          if (filter === null || filter.length === 0 || filter.some(f => finalName.includes(f))) {
+            console.log('HTTP discovery found', name, 'at', url);
+            newActiveModels.push({
+              name: finalName,
+              url: url,
+              id: model.id,
+              apikey: apikey,
+              ...model
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.log(`No model found at ${url}`);
+    }
   }
+
   return newActiveModels;
 }
 
