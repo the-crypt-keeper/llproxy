@@ -44,7 +44,8 @@ let activeModels = [];
 let isDiscoveryInProgress = false;
 
 // SSH Model discovery function
-async function discoverSSH(hostname, ssh_username, env_var) {
+async function discoverSSH(endpoint) {
+  const { hostname, ssh_username, env_var } = endpoint;
 
   const sshCommand = `ssh ${ssh_username}@${hostname} '
     ps ux | tail -n +2 | awk "{print \\$2}" | while read pid; do
@@ -65,7 +66,7 @@ async function discoverSSH(hostname, ssh_username, env_var) {
       if (!processedPorts.has(port)) {
         console.log('SSH discovery found', result, 'on', hostname)
         const url = `http://${hostname}:${port}`;
-        models = await discoverHTTP(url);
+        models = await discoverHTTP({ ...endpoint, url });
         if (models.length > 0) { results = results.concat(models); }
         processedPorts.add(port);
       }
@@ -79,7 +80,8 @@ async function discoverSSH(hostname, ssh_username, env_var) {
   }
 }
 
-async function discoverHTTP(url, tags = [], apikey = null, filter = []) {
+async function discoverHTTP(endpoint) {
+  const { url, tags = [], apikey = null, filter = [] } = endpoint;
   let newActiveModels = [];
   try {
     const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
@@ -123,14 +125,14 @@ async function discoverModels() {
   try {
     for (const endpoint of config.endpoints) {
       if (endpoint.url) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint.url, endpoint.tags, endpoint.apikey, endpoint.filter));
+        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint));
       } else if (endpoint.port_start && endpoint.port_end) {
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
           const url = `http://${endpoint.hostname}:${port}`;
-          newActiveModels = newActiveModels.concat(await discoverHTTP(url, endpoint.tags, endpoint.apikey, endpoint.filter));
+          newActiveModels = newActiveModels.concat(await discoverHTTP({ ...endpoint, url }));
         }
       } else if (endpoint.env_var) {
-        newActiveModels = newActiveModels.concat(await discoverSSH(endpoint.hostname, endpoint.ssh_username, endpoint.env_var));
+        newActiveModels = newActiveModels.concat(await discoverSSH(endpoint));
       }
     }
 
