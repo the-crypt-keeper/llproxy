@@ -13,6 +13,7 @@ LLProxy is a flexible, auto-discovering proxy server for Large Language Models (
 - Periodic model discovery updates
 - Status page for active models
 - Model filtering (only import some models into the proxy)
+- Hot-reloading of configuration
 
 ## Prerequisites
 
@@ -82,6 +83,7 @@ Edit the `config.json` file to set up your LLM endpoints:
      - `url`: The URL for the API endpoint of the managed provider
      - `apikey`: The API key for authentication with the managed provider
      - `filter`: An array of strings to filter model names
+     - `models`: An explicit array of model IDs (skip the /v1/models discovery call)
 
   Common options:
   - `tags`: Optional tags to append to model names (applies to all types)
