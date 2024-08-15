@@ -16,8 +16,28 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Load configuration
-const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+// Function to load configuration
+function loadConfig() {
+  try {
+    const configData = fs.readFileSync('config.json', 'utf8');
+    return JSON.parse(configData);
+  } catch (error) {
+    console.error('Error loading config:', error);
+    process.exit(1);
+  }
+}
+
+// Load initial configuration
+let config = loadConfig();
+
+// Watch for changes in the config file
+fs.watch('config.json', (eventType, filename) => {
+  if (eventType === 'change') {
+    console.log('Config file changed. Reloading...');
+    config = loadConfig();
+    console.log('Config reloaded successfully.');
+  }
+});
 
 // Data structures
 let activeModels = [];
