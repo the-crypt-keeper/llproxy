@@ -87,7 +87,7 @@ async function discoverHTTP(endpoint) {
   if (models.length > 0) {
     // Use the provided models array directly
     for (const model of models) {
-      const name = model.id.split('/').pop().replace('.gguf', '');
+      const name = model.split('/').pop().replace('.gguf', '');
       const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
       finalNames.forEach(finalName => {
@@ -96,7 +96,7 @@ async function discoverHTTP(endpoint) {
           newActiveModels.push({
             name: finalName,
             url: url,
-            id: model.id,
+            id: model,
             apikey: apikey,
             ...model
           });
