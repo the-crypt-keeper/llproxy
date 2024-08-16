@@ -144,24 +144,29 @@ async function discoverModels() {
 
   isDiscoveryInProgress = true;
   console.log('Starting model discovery...');
-  let newActiveModels = [];
 
   try {
-    for (const endpoint of config.endpoints) {
-      if (endpoint.enable === false) { continue; }
+    const discoveryPromises = config.endpoints.map(async (endpoint) => {
+      if (endpoint.enable === false) return [];
+      
       if (endpoint.url) {
-        newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint));
+        return discoverHTTP(endpoint);
       } else if (endpoint.port_start && endpoint.port_end) {
+        const portPromises = [];
         for (let port = endpoint.port_start; port <= endpoint.port_end; port++) {
           const url = `http://${endpoint.hostname}:${port}`;
-          newActiveModels = newActiveModels.concat(await discoverHTTP({ ...endpoint, url }));
+          portPromises.push(discoverHTTP({ ...endpoint, url }));
         }
+        return (await Promise.all(portPromises)).flat();
       } else if (endpoint.env_var) {
-        newActiveModels = newActiveModels.concat(await discoverSSH(endpoint));
+        return discoverSSH(endpoint);
       }
-    }
+      
+      return [];
+    });
 
-    activeModels = newActiveModels;
+    const allDiscoveredModels = await Promise.all(discoveryPromises);
+    activeModels = allDiscoveredModels.flat();
     console.log(`Model discovery complete. Found ${activeModels.length} models.`);
   } catch (error) {
     console.error('Error during model discovery:', error);
