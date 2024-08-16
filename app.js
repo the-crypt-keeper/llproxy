@@ -148,6 +148,7 @@ async function discoverModels() {
 
   try {
     for (const endpoint of config.endpoints) {
+      if (endpoint.enable === false) { continue; }
       if (endpoint.url) {
         newActiveModels = newActiveModels.concat(await discoverHTTP(endpoint));
       } else if (endpoint.port_start && endpoint.port_end) {
