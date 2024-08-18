@@ -227,7 +227,20 @@ async function proxyCompletionRequest(req, res, endpoint) {
     response.data.pipe(res);
   } catch (error) {
     console.error('Error proxying request:', error.message);
-    res.status(500).json({ error: 'Error proxying request' });
+    if (error.response) {
+      // If the error has a response, send its status and data
+      res.status(error.response.status).json({
+        error: 'Error proxying request',
+        proxyError: error.message,
+        responseData: error.response.data
+      });
+    } else {
+      // If there's no response, send a generic 500 error
+      res.status(500).json({
+        error: 'Error proxying request',
+        proxyError: error.message
+      });
+    }
   }
 }
 
