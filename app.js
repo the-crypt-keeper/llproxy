@@ -143,15 +143,24 @@ async function discoverHTTP(endpoint) {
 // Function to resolve model ID collisions
 function resolveModelIdCollisions(models) {
   const idCounts = {};
-  return models.map(model => {
+  const renamedModels = [];
+
+  models.forEach(model => {
     if (idCounts[model.name]) {
+      // Rename the original model if it hasn't been renamed yet
+      if (idCounts[model.name] === 1) {
+        const originalModel = renamedModels.find(m => m.name === model.name);
+        originalModel.name = `${originalModel.name}:0`;
+      }
       idCounts[model.name]++;
       model.name = `${model.name}:${idCounts[model.name] - 1}`;
     } else {
       idCounts[model.name] = 1;
     }
-    return model;
+    renamedModels.push(model);
   });
+
+  return renamedModels;
 }
 
 // HTTP Model discovery function
