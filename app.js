@@ -23,7 +23,7 @@ function loadConfig() {
     return JSON.parse(configData);
   } catch (error) {
     console.error('Error loading config:', error);
-    process.exit(1);
+    return null;
   }
 }
 
@@ -34,8 +34,13 @@ let config = loadConfig();
 fs.watch('config.json', (eventType, filename) => {
   if (eventType === 'change') {
     console.log('Config file changed. Reloading...');
-    config = loadConfig();
-    console.log('Config reloaded successfully.');
+    new_config = loadConfig();
+    if (new_config !== null) {
+      config = new_config;
+      console.log('Config reloaded successfully.');
+    } else {
+      console.error('Config reload failed!')
+    }
   }
 });
 
@@ -111,7 +116,7 @@ async function discoverHTTP(endpoint) {
       const fetchedModels = response.data.data;
 
       for (const model of fetchedModels) {
-        const name = model.id.split('/').pop().replace('.gguf', '');
+        const name = model.id.split('/').pop().replace('.gguf', '').replace(' ','-');
         const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
         finalNames.forEach(finalName => {
@@ -227,7 +232,6 @@ async function proxyCompletionRequest(req, res, endpoint) {
     response.data.pipe(res);
   } catch (error) {
     console.error('Error proxying request:', error.message);
-    console.log(error);
     if (error.response) {
       // If the error has a response, pipe the error stream to the client
       res.status(error.response.status);
