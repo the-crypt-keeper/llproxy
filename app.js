@@ -140,6 +140,20 @@ async function discoverHTTP(endpoint) {
   return newActiveModels;
 }
 
+// Function to resolve model ID collisions
+function resolveModelIdCollisions(models) {
+  const idCounts = {};
+  return models.map(model => {
+    if (idCounts[model.name]) {
+      idCounts[model.name]++;
+      model.name = `${model.name}:${idCounts[model.name] - 1}`;
+    } else {
+      idCounts[model.name] = 1;
+    }
+    return model;
+  });
+}
+
 // HTTP Model discovery function
 async function discoverModels() {
   if (isDiscoveryInProgress) {
@@ -171,7 +185,8 @@ async function discoverModels() {
     });
 
     const allDiscoveredModels = await Promise.all(discoveryPromises);
-    activeModels = allDiscoveredModels.flat();
+    const flattenedModels = allDiscoveredModels.flat();
+    activeModels = resolveModelIdCollisions(flattenedModels);
     console.log(`Model discovery complete. Found ${activeModels.length} models.`);
   } catch (error) {
     console.error('Error during model discovery:', error);
