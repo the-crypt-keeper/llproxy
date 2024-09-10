@@ -70,7 +70,7 @@ async function discoverSSH(endpoint) {
       const [pid, port] = result.split(',');
       if (!processedPorts.has(port)) {
         console.log('SSH discovery found', result, 'on', hostname)
-        const url = `http://${hostname}:${port}`;
+        const url = `http://${hostname}:${port}/v1`;
         models = await discoverHTTP({ ...endpoint, url });
         if (models.length > 0) { results = results.concat(models); }
         processedPorts.add(port);
@@ -112,11 +112,21 @@ async function discoverHTTP(endpoint) {
     // Fetch models from the API if no models array is provided
     try {
       const headers = apikey ? { Authorization: `Bearer ${apikey}` } : {};
-      const response = await axios.get(`${url}/v1/models`, { headers });
-      const fetchedModels = response.data.data;
+      const response = await axios.get(`${url}/models`, { headers });
+      let fetchedModels = response.data.data ? response.data.data : response.data;
 
-      for (const model of fetchedModels) {
-        const name = model.id.split('/').pop().replace('.gguf', '').replace(' ','-');
+      if (fetchedModels[0].owned_by == "tabbyAPI") {
+        // tabbyAPI returns all possible models instead of the loaded one
+        const response2 = await axios.get(`${url}/model`, { headers });
+        fetchedModels = [response2.data];
+      }
+
+      for (let model of fetchedModels) {
+        // azure models list has useless ids
+        if (model.id.startsWith('azureml://')) { 
+          model.id = model.name;
+        }
+        let name = model.id.split('/').pop().replace('.gguf', '').replace(' ','-');
         const finalNames = tags.length > 0 ? tags.map(tag => `${name}:${tag}`) : [name];
 
         finalNames.forEach(finalName => {
@@ -133,7 +143,7 @@ async function discoverHTTP(endpoint) {
         });
       }
     } catch (error) {
-      console.log(`No model found at ${url}`);
+      console.log(`No model found at ${url}: ${error}`);
     }
   }
 
@@ -244,10 +254,13 @@ async function proxyCompletionRequest(req, res, endpoint) {
     if (model.apikey) {
       headers['Authorization'] = `Bearer ${model.apikey}`;
     }
+    const proxyUrl = `${model.url}/${endpoint}`
+
+    console.log('PROXY to', proxyUrl,'request body', proxyReq)
 
     const response = await axios({
       method: 'post',
-      url: `${model.url}/v1/${endpoint}`,
+      url: proxyUrl,
       data: proxyReq,
       headers: headers,
       responseType: 'stream'
