@@ -266,12 +266,35 @@ async function proxyCompletionRequest(req, res, endpoint) {
       responseType: 'stream'
     });
 
+    // Set the content type based on the response
+    const contentType = response.headers['content-type'];
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
+
+    // Pipe the response data
     response.data.pipe(res);
+
+    // Handle any errors that occur while piping
+    response.data.on('error', (err) => {
+      console.error('Error while piping response:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Error while streaming response',
+          streamError: err.message
+        });
+      }
+    });
+
   } catch (error) {
     console.error('Error proxying request:', error.message);
     if (error.response) {
-      // If the error has a response, pipe the error stream to the client
+      // If the error has a response, set the status and content type
       res.status(error.response.status);
+      const contentType = error.response.headers['content-type'];
+      if (contentType) {
+        res.setHeader('Content-Type', contentType);
+      }
       error.response.data.pipe(res);
     } else {
       // If there's no response, send a generic 500 error
